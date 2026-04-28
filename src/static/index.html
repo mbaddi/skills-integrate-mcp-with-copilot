@@ -39,6 +39,52 @@
         </form>
         <div id="message" class="hidden"></div>
       </section>
+
+      <section id="admin-container">
+        <h3>Admin Activity Management</h3>
+        <form id="admin-form">
+          <input type="hidden" id="original-name" />
+          <div class="form-group">
+            <label for="admin-name">Activity Name:</label>
+            <input
+              type="text"
+              id="admin-name"
+              required
+              placeholder="Robotics Club"
+            />
+          </div>
+          <div class="form-group">
+            <label for="admin-description">Description:</label>
+            <input
+              type="text"
+              id="admin-description"
+              required
+              placeholder="Describe the activity"
+            />
+          </div>
+          <div class="form-group">
+            <label for="admin-schedule">Schedule:</label>
+            <input
+              type="text"
+              id="admin-schedule"
+              required
+              placeholder="Mondays and Wednesdays, 4:00 PM"
+            />
+          </div>
+          <div class="form-group">
+            <label for="admin-max-participants">Max Participants:</label>
+            <input
+              type="number"
+              id="admin-max-participants"
+              required
+              min="1"
+              placeholder="20"
+            />
+          </div>
+          <button type="submit">Save Activity</button>
+        </form>
+        <button type="button" id="cancel-edit" class="hidden">Cancel edit</button>
+      </section>
     </main>
 
     <footer>
