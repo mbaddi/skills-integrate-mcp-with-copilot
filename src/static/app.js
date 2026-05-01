@@ -2,26 +2,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
+  const adminForm = document.getElementById("admin-form");
+  const adminNameInput = document.getElementById("admin-name");
+  const adminDescriptionInput = document.getElementById("admin-description");
+  const adminScheduleInput = document.getElementById("admin-schedule");
+  const adminMaxParticipantsInput = document.getElementById("admin-max-participants");
+  const originalNameInput = document.getElementById("original-name");
+  const cancelEditButton = document.getElementById("cancel-edit");
   const messageDiv = document.getElementById("message");
 
-  // Function to fetch activities from API
+  let editingActivity = null;
+
+  function displayMessage(text, type = "info") {
+    messageDiv.textContent = text;
+    messageDiv.className = type;
+    messageDiv.classList.remove("hidden");
+
+    setTimeout(() => {
+      messageDiv.classList.add("hidden");
+    }, 5000);
+  }
+
+  function resetAdminForm() {
+    adminForm.reset();
+    originalNameInput.value = "";
+    editingActivity = null;
+    adminNameInput.disabled = false;
+    cancelEditButton.classList.add("hidden");
+  }
+
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = `<option value="">-- Select an activity --</option>`;
 
-      // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
+        activityCard.dataset.maxParticipants = details.max_participants;
 
-        const spotsLeft =
-          details.max_participants - details.participants.length;
+        const spotsLeft = details.max_participants - details.participants.length;
 
-        // Create participants HTML with delete icons instead of bullet points
         const participantsHTML =
           details.participants.length > 0
             ? `<div class="participants-section">
@@ -45,20 +69,30 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="participants-container">
             ${participantsHTML}
           </div>
+          <div class="admin-actions">
+            <button class="edit-activity-btn" data-activity="${name}" type="button">Edit</button>
+            <button class="delete-activity-btn" data-activity="${name}" type="button">Delete</button>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
 
-        // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
       });
 
-      // Add event listeners to delete buttons
       document.querySelectorAll(".delete-btn").forEach((button) => {
         button.addEventListener("click", handleUnregister);
+      });
+
+      document.querySelectorAll(".delete-activity-btn").forEach((button) => {
+        button.addEventListener("click", handleDeleteActivity);
+      });
+
+      document.querySelectorAll(".edit-activity-btn").forEach((button) => {
+        button.addEventListener("click", handleEditActivity);
       });
     } catch (error) {
       activitiesList.innerHTML =
@@ -67,7 +101,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle unregister functionality
+  async function handleDeleteActivity(event) {
+    const activity = event.target.getAttribute("data-activity");
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        displayMessage(result.message, "success");
+        fetchActivities();
+      } else {
+        displayMessage(result.detail || "Could not delete activity", "error");
+      }
+    } catch (error) {
+      displayMessage("Failed to delete activity. Please try again.", "error");
+      console.error("Error deleting activity:", error);
+    }
+  }
+
+  function handleEditActivity(event) {
+    const activity = event.target.getAttribute("data-activity");
+    const card = event.target.closest(".activity-card");
+    const description = card.querySelector("p:nth-of-type(1)").textContent;
+    const scheduleRow = card.querySelector("p:nth-of-type(2)").textContent;
+    const schedule = scheduleRow.replace("Schedule: ", "");
+
+    editingActivity = activity;
+    originalNameInput.value = activity;
+    adminNameInput.value = activity;
+    adminDescriptionInput.value = description;
+    adminScheduleInput.value = schedule;
+    adminMaxParticipantsInput.value = card.dataset.maxParticipants || "";
+    adminNameInput.disabled = true;
+    cancelEditButton.classList.remove("hidden");
+    adminDescriptionInput.focus();
+  }
+
   async function handleUnregister(event) {
     const button = event.target;
     const activity = button.getAttribute("data-activity");
@@ -86,31 +162,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
-
-        // Refresh activities list to show updated participants
+        displayMessage(result.message, "success");
         fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        displayMessage(result.detail || "An error occurred", "error");
       }
-
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to unregister. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
+      displayMessage("Failed to unregister. Please try again.", "error");
       console.error("Error unregistering:", error);
     }
   }
 
-  // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -130,31 +192,76 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        displayMessage(result.message, "success");
         signupForm.reset();
-
-        // Refresh activities list to show updated participants
         fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        displayMessage(result.detail || "An error occurred", "error");
       }
-
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
+      displayMessage("Failed to sign up. Please try again.", "error");
       console.error("Error signing up:", error);
     }
   });
 
-  // Initialize app
+  adminForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const name = adminNameInput.value.trim();
+    const description = adminDescriptionInput.value.trim();
+    const schedule = adminScheduleInput.value.trim();
+    const maxParticipants = Number(adminMaxParticipantsInput.value);
+
+    if (!name || !description || !schedule || !maxParticipants) {
+      displayMessage("All admin fields are required.", "error");
+      return;
+    }
+
+    const payload = {
+      description,
+      schedule,
+      max_participants: maxParticipants,
+    };
+
+    try {
+      let response;
+
+      if (editingActivity) {
+        response = await fetch(
+          `/activities/${encodeURIComponent(editingActivity)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+      } else {
+        response = await fetch(
+          `/activities/${encodeURIComponent(name)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, participants: [] }),
+          }
+        );
+      }
+
+      const result = await response.json();
+
+      if (response.ok) {
+        displayMessage(result.message, "success");
+        resetAdminForm();
+        fetchActivities();
+      } else {
+        displayMessage(result.detail || "Could not save activity", "error");
+      }
+    } catch (error) {
+      displayMessage("Failed to save activity. Please try again.", "error");
+      console.error("Error saving activity:", error);
+    }
+  });
+
+  cancelEditButton.addEventListener("click", resetAdminForm);
+
   fetchActivities();
 });

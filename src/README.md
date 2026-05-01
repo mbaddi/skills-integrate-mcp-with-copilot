@@ -30,7 +30,12 @@ A super simple FastAPI application that allows students to view and sign up for 
 | Method | Endpoint                                                          | Description                                                         |
 | ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | GET    | `/activities`                                                     | Get all activities with their details and current participant count |
+| GET    | `/activities/{activity_name}`                                     | Get details for a specific activity                                 |
+| GET    | `/activities/stats`                                               | Get administrative activity and participant counts                  |
 | POST   | `/activities/{activity_name}/signup?email=student@mergington.edu` | Sign up for an activity                                             |
+| POST   | `/activities/{activity_name}`                                     | Create a new activity                                                |
+| PUT    | `/activities/{activity_name}`                                     | Update an existing activity                                          |
+| DELETE | `/activities/{activity_name}`                                     | Delete an activity                                                   |
 
 ## Data Model
 
